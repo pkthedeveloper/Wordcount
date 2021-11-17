@@ -1,0 +1,120 @@
+<?php
+/*
+Plugin Name: Welwin Settings
+Plugin URI: https://welwininfotech.com/
+Description: This Pugin most use for Word count and character count.
+Version: 2.9.7
+Contributors: WelWin
+Author: Manan
+Author URI: https://welwininfotech.com/
+License: GPLv2 or later
+License URI:  https://www.gnu.org/licenses/gpl-2.0.html
+Text Domain: wpplugin
+Domain Path:  /languages
+*/
+
+  class wordcountandtime {
+    function __construct() {
+      add_action('admin_menu', array($this ,'settinglink'));
+      add_action('admin_init', array($this , 'settings'));
+      add_filter('the_content', array($this, 'ifwrap'));
+    }
+      function ifwrap($content){
+        if ((is_main_query() AND is_single()) AND
+        (
+          get_option('wcp_wordcount', '1') OR
+          get_option('wcp_characount', '1') OR 
+          get_option('wcp_readcount', '1')
+          )) {
+            return $this->createhtml($content);
+          }
+          return $content;
+      }
+      function createhtml($content){
+        $html= '<h3>'. get_option('wcp_headline', 'post statistics') .'</h3><p>';
+
+        //word count and readtime
+        if(get_option('wcp_wordcount', '1') OR get_option('wcp_readcount', '1')){
+          $wordcount= str_word_count(strip_tags($content));
+        }
+        if(get_option('wcp_wordcount', '1')){
+          $html .='this post has ' . $wordcount . ' words.<br>'; 
+        }
+        if(get_option('wcp_characount', '1')){
+          $html .='this post has ' . strlen(strip_tags($content)) . ' chr.<br>'; 
+        }
+        if(get_option('wcp_readcount', '1')){
+          $html .='this post will take about ' . round($wordcount/300) . ' min(s).<br>'; 
+          } 
+          $html.='</p>';
+
+        if(get_option('wcp_location', '0') =='0'){
+          return $html . $content;
+        }
+          return $content .  $html;
+      }
+
+      function settings() {
+        add_settings_section('wcp_frist_section', null, null, 'word-count-settings');
+
+        /*for display*/
+        add_settings_field('wcp_location', 'display', array($this, 'locationhtml'), 'word-count-settings', 'wcp_frist_section');
+        register_setting('wordcountplugin', 'wcp_location', array('sanitize_callback' => 'sanitize_text_field', 'default' => '0'));
+
+        /*for Headline*/
+        add_settings_field('wcp_headline', 'Headline', array($this, 'headlinehtml'), 'word-count-settings', 'wcp_frist_section');
+        register_setting('wordcountplugin', 'wcp_headline', array('sanitize_callback' => 'sanitize_text_field', 'default' => 'Post Statistics'));
+
+        /*for count*/
+        add_settings_field('wcp_wordcount', 'count', array($this, 'wordcounthtml'), 'word-count-settings', 'wcp_frist_section');
+        register_setting('wordcountplugin', 'wcp_wordcount', array('sanitize_callback' => 'sanitize_text_field', 'default' => '1'));
+
+        /*for character*/
+        add_settings_field('wcp_characount', 'character', array($this, 'characounthtml'), 'word-count-settings', 'wcp_frist_section');
+        register_setting('wordcountplugin', 'wcp_characount', array('sanitize_callback' => 'sanitize_text_field', 'default' => '1'));
+
+        /*for read*/
+        add_settings_field('wcp_readcount', 'read', array($this, 'readhtml'), 'word-count-settings', 'wcp_frist_section');
+        register_setting('wordcountplugin', 'wcp_readcount', array('sanitize_callback' => 'sanitize_text_field', 'default' => '1'));
+      }
+
+      function readhtml(){?>
+        <input type="checkbox" name="wcp_readcount" value="1" <?php checked(get_option('wcp_readcount'), '1') ?>>
+        <?php }
+
+      function characounthtml(){?>
+        <input type="checkbox" name="wcp_characount" value="1" <?php checked(get_option('wcp_characount'), '1') ?>>
+        <?php }
+
+      function wordcounthtml(){?>
+      <input type="checkbox" name="wcp_wordcount" value="1" <?php checked(get_option('wcp_wordcount'), '1') ?>>
+      <?php }
+
+      function headlinehtml() {?>
+      <input type="text" name="wcp_headline" value="<?php echo esc_attr(get_option('wcp_headline')) ?>">
+     <?php }
+
+      function locationhtml(){?>
+          <select name="wcp_location">
+            <option value="0" <?php selected(get_option('wcp_location'),'0') ?> >staring on post</option>
+            <option value="1" <?php selected(get_option('wcp_location'),'1') ?> >last in post</option>
+            </select>
+      <?php }
+
+      function settinglink(){
+        add_options_page('word count seting', 'word count', 'manage_options', 'word-count-settings', array($this, 'settinghtml'));
+      }
+      function settinghtml() { ?>
+        <div class='wrap'>
+          <h1>Word Count</h1>
+          <form action="options.php" method="POST">
+            <?php
+              settings_fields('wordcountplugin');
+              do_settings_sections('word-count-settings');
+              submit_button();
+            ?>
+          </form>
+        </div>
+      <?php } 
+    }
+    $wordcountandtime = new wordcountandtime();
